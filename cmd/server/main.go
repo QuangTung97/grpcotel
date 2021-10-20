@@ -6,16 +6,48 @@ import (
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"grpcotel/backend"
+	"grpcotel/pkg/tracing"
 	backendrpc "grpcotel/rpc/backend"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"sync"
+
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+
+	"go.opentelemetry.io/otel/exporters/jaeger"
 )
+
+func newJaegerExporter() sdktrace.SpanExporter {
+	exporter, err := jaeger.New(
+		jaeger.WithAgentEndpoint(),
+	)
+	if err != nil {
+		panic(err)
+	}
+	return exporter
+}
+
+func newResource() *resource.Resource {
+	r, _ := resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceNameKey.String("grpcotel"),
+			semconv.ServiceVersionKey.String("v0.1.0"),
+			attribute.String("environment", "local"),
+		),
+	)
+	return r
+}
 
 func main() {
 	logger, err := zap.NewDevelopment()
@@ -23,9 +55,20 @@ func main() {
 		panic(err)
 	}
 
+	exporter := newJaegerExporter()
+
+	tracerProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(newResource()),
+	)
+
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
+			otelgrpc.UnaryServerInterceptor(
+				otelgrpc.WithTracerProvider(tracerProvider),
+			),
 			grpc_ctxtags.UnaryServerInterceptor(),
+			tracing.SetTraceInfoInterceptor,
 			grpc_zap.UnaryServerInterceptor(logger),
 		),
 	)

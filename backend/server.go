@@ -11,7 +11,7 @@ type Server struct {
 }
 
 // GetUser ...
-func (s *Server) GetUser(
+func (*Server) GetUser(
 	_ context.Context, _ *backendrpc.GetUserRequest,
 ) (*backendrpc.GetUserResponse, error) {
 	return &backendrpc.GetUserResponse{
