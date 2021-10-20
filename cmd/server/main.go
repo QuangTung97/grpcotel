@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"grpcotel/backend"
-	"grpcotel/pkg/tracing"
+	"grpcotel/pkg/level"
 	backendrpc "grpcotel/rpc/backend"
 	"net"
 	"net/http"
@@ -49,6 +49,10 @@ func newResource() *resource.Resource {
 	return r
 }
 
+func payloadDecider(ctx context.Context, fullMethodName string, servingObject interface{}) bool {
+	return true
+}
+
 func main() {
 	logger, err := zap.NewDevelopment()
 	if err != nil {
@@ -68,8 +72,9 @@ func main() {
 				otelgrpc.WithTracerProvider(tracerProvider),
 			),
 			grpc_ctxtags.UnaryServerInterceptor(),
-			tracing.SetTraceInfoInterceptor,
+			level.SetTraceInfoInterceptor(logger),
 			grpc_zap.UnaryServerInterceptor(logger),
+			grpc_zap.PayloadUnaryServerInterceptor(logger, payloadDecider),
 		),
 	)
 
@@ -78,7 +83,7 @@ func main() {
 	endpoint := "localhost:8300"
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
-	backendrpc.RegisterBackendServiceServer(grpcServer, &backend.Server{})
+	backendrpc.RegisterBackendServiceServer(grpcServer, backend.NewServer(tracerProvider.Tracer("backend")))
 	_ = backendrpc.RegisterBackendServiceHandlerFromEndpoint(ctx, mux, endpoint, opts)
 
 	// Start Servers
