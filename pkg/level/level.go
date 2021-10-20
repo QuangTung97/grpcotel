@@ -23,7 +23,9 @@ const (
 
 // SetTraceInfoInterceptor ...
 func SetTraceInfoInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	return func(
+		ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
+	) (resp interface{}, err error) {
 		tags := grpc_ctxtags.Extract(ctx)
 		sc := trace.SpanContextFromContext(ctx)
 

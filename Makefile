@@ -1,4 +1,4 @@
-.PHONY:  generate lint install-tools server
+.PHONY:  generate lint install-tools server proxy
 
 ROOT := ${PWD}
 
@@ -23,3 +23,6 @@ install-tools:
 
 server:
 	go run cmd/server/main.go
+
+proxy:
+	go run cmd/proxy/main.go
