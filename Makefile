@@ -1,4 +1,4 @@
-.PHONY:  generate install-tools
+.PHONY:  generate lint install-tools server
 
 ROOT := ${PWD}
 
@@ -11,7 +11,15 @@ generate:
 			--grpc-gateway_out=logtostderr=true,paths=source_relative:${ROOT}/rpc/backend \
 			backend.proto
 
+lint:
+	go fmt ./...
+	go vet ./...
+	revive -config revive.toml -formatter friendly ./...
+
 install-tools:
 	go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
 	go install google.golang.org/protobuf/cmd/protoc-gen-go
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc
+
+server:
+	go run cmd/server/main.go

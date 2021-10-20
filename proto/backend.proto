@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package backend;
 
-option go_package = "grpcotel/rpc/backend;backend";
+option go_package = "grpcotel/rpc/backend;backendrpc";
 
 import "google/api/annotations.proto";
 
