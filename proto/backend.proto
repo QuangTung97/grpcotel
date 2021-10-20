@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package backend;
+
+option go_package = "grpcotel/rpc/backend;backend";
+
+import "google/api/annotations.proto";
+
+service BackendService {
+  rpc GetUser (GetUserRequest) returns (GetUserResponse) {
+    option (google.api.http) = {
+      get: "/api/users/{id}"
+    };
+  }
+}
+
+// GetUserRequest ...
+message GetUserRequest {
+  int64 id = 1;
+}
+
+// GetUserResponse ...
+message GetUserResponse {
+  string msg = 1;
+}
