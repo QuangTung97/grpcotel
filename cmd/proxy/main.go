@@ -12,7 +12,8 @@ import (
 )
 
 func main() {
-	grpcServer, tracerProvider := common.Setup("grpcotel_proxy")
+	grpcServer, tracerProvider, shutdown := common.Setup("grpcotel_proxy")
+	defer shutdown()
 
 	mux := runtime.NewServeMux()
 	ctx := context.Background()
@@ -32,7 +33,7 @@ func main() {
 	}
 
 	backendrpc.RegisterBackendServiceServer(
-		grpcServer, backend.NewProxy(conn))
+		grpcServer, backend.NewProxy(conn, tracerProvider))
 	_ = backendrpc.RegisterBackendServiceHandlerFromEndpoint(ctx, mux, endpoint, opts)
 
 	common.StartServers(grpcServer, mux, common.ServerConfig{

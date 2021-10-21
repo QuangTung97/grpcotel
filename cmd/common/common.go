@@ -52,18 +52,23 @@ func payloadDecider(_ context.Context, _ string, _ interface{}) bool {
 }
 
 // Setup ...
-func Setup(serviceName string) (*grpc.Server, trace.TracerProvider) {
+func Setup(serviceName string) (*grpc.Server, trace.TracerProvider, func()) {
 	logger, err := zap.NewDevelopment()
 	if err != nil {
 		panic(err)
 	}
 
 	exporter := newJaegerExporter()
-
 	tracerProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(newResource(serviceName)),
 	)
+	shutdown := func() {
+		err := tracerProvider.Shutdown(context.Background())
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
@@ -78,7 +83,7 @@ func Setup(serviceName string) (*grpc.Server, trace.TracerProvider) {
 		),
 	)
 
-	return grpcServer, tracerProvider
+	return grpcServer, tracerProvider, shutdown
 }
 
 // ServerConfig ...

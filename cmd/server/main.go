@@ -10,7 +10,8 @@ import (
 )
 
 func main() {
-	grpcServer, tracerProvider := common.Setup("grpcotel_server")
+	grpcServer, tracerProvider, shutdown := common.Setup("grpcotel_server")
+	defer shutdown()
 
 	mux := runtime.NewServeMux()
 	ctx := context.Background()
@@ -18,7 +19,7 @@ func main() {
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
 	backendrpc.RegisterBackendServiceServer(
-		grpcServer, backend.NewServer(tracerProvider.Tracer("backend")))
+		grpcServer, backend.NewServer(tracerProvider.Tracer("backend.server")))
 	_ = backendrpc.RegisterBackendServiceHandlerFromEndpoint(ctx, mux, endpoint, opts)
 
 	common.StartServers(grpcServer, mux, common.ServerConfig{

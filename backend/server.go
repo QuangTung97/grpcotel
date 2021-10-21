@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"grpcotel/pkg/level"
 	backendrpc "grpcotel/rpc/backend"
@@ -33,11 +34,27 @@ func (s *Server) doSleeping(ctx context.Context) {
 	span.End()
 }
 
+func (s *Server) doInBackground(ctx context.Context, id int64) {
+	link := trace.LinkFromContext(ctx)
+	go func() {
+		fmt.Println("Do In Background")
+		_, span := s.tracer.Start(
+			context.Background(), "DoInBackground",
+			trace.WithLinks(link),
+			trace.WithAttributes(attribute.Int64("user.id", id)),
+		)
+		defer span.End()
+
+		time.Sleep(10 * time.Millisecond)
+	}()
+}
+
 // GetUser ...
 func (s *Server) GetUser(
-	ctx context.Context, _ *backendrpc.GetUserRequest,
+	ctx context.Context, req *backendrpc.GetUserRequest,
 ) (*backendrpc.GetUserResponse, error) {
 	s.doSleeping(ctx)
+	s.doInBackground(ctx, req.Id)
 
 	level.Extract(ctx).Info("Outside Span")
 
