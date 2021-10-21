@@ -49,11 +49,24 @@ func (s *Server) doInBackground(ctx context.Context, id int64) {
 	}()
 }
 
+func (s *Server) backgroundJobWithSameTrace(rootCtx context.Context, id int64) {
+	rootSpan := trace.SpanFromContext(rootCtx)
+	go func() {
+		ctx := trace.ContextWithSpan(context.Background(), rootSpan)
+		ctx, span := s.tracer.Start(ctx, "BackgroundJob",
+			trace.WithAttributes(attribute.Int64("user.id", id)))
+		defer span.End()
+
+		time.Sleep(15 * time.Millisecond)
+	}()
+}
+
 // GetUser ...
 func (s *Server) GetUser(
 	ctx context.Context, req *backendrpc.GetUserRequest,
 ) (*backendrpc.GetUserResponse, error) {
 	s.doSleeping(ctx)
+	s.backgroundJobWithSameTrace(ctx, req.Id)
 	s.doInBackground(ctx, req.Id)
 
 	level.Extract(ctx).Info("Outside Span")
