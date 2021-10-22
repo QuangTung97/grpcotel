@@ -7,13 +7,31 @@ import (
 	"grpcotel/backend"
 	"grpcotel/cmd/common"
 	backendrpc "grpcotel/rpc/backend"
+	"net/textproto"
 )
+
+func traceContextHeaderMatcher(key string) (string, bool) {
+	const (
+		traceparentHeader = "Traceparent"
+		tracestateHeader  = "Tracestate"
+	)
+
+	key = textproto.CanonicalMIMEHeaderKey(key)
+	switch key {
+	case traceparentHeader, tracestateHeader:
+		return key, true
+	default:
+		return runtime.DefaultHeaderMatcher(key)
+	}
+}
 
 func main() {
 	grpcServer, tracerProvider, shutdown := common.Setup("grpcotel_server")
 	defer shutdown()
 
-	mux := runtime.NewServeMux()
+	mux := runtime.NewServeMux(
+		runtime.WithIncomingHeaderMatcher(traceContextHeaderMatcher),
+	)
 	ctx := context.Background()
 	endpoint := "localhost:8300"
 	opts := []grpc.DialOption{grpc.WithInsecure()}
