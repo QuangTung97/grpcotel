@@ -36,8 +36,11 @@ func main() {
 	endpoint := "localhost:8300"
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
+	backendrpc.RegisterHealthServiceServer(grpcServer, &backend.HealthServer{})
 	backendrpc.RegisterBackendServiceServer(
 		grpcServer, backend.NewServer(tracerProvider.Tracer("backend.server")))
+
+	_ = backendrpc.RegisterHealthServiceHandlerFromEndpoint(ctx, mux, endpoint, opts)
 	_ = backendrpc.RegisterBackendServiceHandlerFromEndpoint(ctx, mux, endpoint, opts)
 
 	common.StartServers(grpcServer, mux, common.ServerConfig{

@@ -23,3 +23,34 @@ message GetUserRequest {
 message GetUserResponse {
   string msg = 1;
 }
+
+// Health Check
+service HealthService {
+  rpc Live (LiveRequest) returns (LiveResponse) {
+    option (google.api.http) = {
+      get: "/health/live"
+    };
+  }
+
+  rpc Ready (ReadyRequest) returns (ReadyResponse) {
+    option (google.api.http) = {
+      get: "/health/ready"
+    };
+  }
+}
+
+// LiveRequest ...
+message LiveRequest {
+}
+
+// LiveResponse ...
+message LiveResponse {
+}
+
+// ReadyRequest ...
+message ReadyRequest {
+}
+
+// ReadyResponse ...
+message ReadyResponse {
+}

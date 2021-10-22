@@ -47,8 +47,20 @@ func newResource(name string) *resource.Resource {
 	return r
 }
 
-func payloadDecider(_ context.Context, _ string, _ interface{}) bool {
-	return true
+func disableForHealthCheckInterceptor(interceptor grpc.UnaryServerInterceptor) grpc.UnaryServerInterceptor {
+	const (
+		healthLive  = "/backend.HealthService/Live"
+		healthReady = "/backend.HealthService/Ready"
+	)
+
+	return func(
+		ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
+	) (resp interface{}, err error) {
+		if info.FullMethod == healthLive || info.FullMethod == healthReady {
+			return handler(ctx, req)
+		}
+		return interceptor(ctx, req, info, handler)
+	}
 }
 
 // Setup ...
@@ -70,16 +82,17 @@ func Setup(serviceName string) (*grpc.Server, trace.TracerProvider, func()) {
 		}
 	}
 
+	otelInterceptor := otelgrpc.UnaryServerInterceptor(
+		otelgrpc.WithTracerProvider(tracerProvider),
+		otelgrpc.WithPropagators(propagation.TraceContext{}),
+	)
+
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
-			otelgrpc.UnaryServerInterceptor(
-				otelgrpc.WithTracerProvider(tracerProvider),
-				otelgrpc.WithPropagators(propagation.TraceContext{}),
-			),
+			disableForHealthCheckInterceptor(otelInterceptor),
 			grpc_ctxtags.UnaryServerInterceptor(),
 			level.SetTraceInfoInterceptor(logger),
 			grpc_zap.UnaryServerInterceptor(logger),
-			// grpc_zap.PayloadUnaryServerInterceptor(logger, payloadDecider),
 		),
 	)
 

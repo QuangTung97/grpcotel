@@ -32,8 +32,11 @@ func main() {
 		panic(err)
 	}
 
+	backendrpc.RegisterHealthServiceServer(grpcServer, &backend.HealthServer{})
 	backendrpc.RegisterBackendServiceServer(
 		grpcServer, backend.NewProxy(conn, tracerProvider))
+
+	_ = backendrpc.RegisterHealthServiceHandlerFromEndpoint(ctx, mux, endpoint, opts)
 	_ = backendrpc.RegisterBackendServiceHandlerFromEndpoint(ctx, mux, endpoint, opts)
 
 	common.StartServers(grpcServer, mux, common.ServerConfig{
