@@ -50,11 +50,15 @@ func (s *Server) doInBackground(ctx context.Context, id int64) {
 }
 
 func (s *Server) backgroundJobWithSameTrace(rootCtx context.Context, id int64) {
-	rootSpan := trace.SpanFromContext(rootCtx)
+	rootSC := trace.SpanContextFromContext(rootCtx)
 	go func() {
-		ctx := trace.ContextWithSpan(context.Background(), rootSpan)
+		ctx := trace.ContextWithSpanContext(context.Background(), rootSC)
 		ctx, span := s.tracer.Start(ctx, "BackgroundJob",
-			trace.WithAttributes(attribute.Int64("user.id", id)))
+			trace.WithAttributes(
+				attribute.Int64("user.id", id),
+				attribute.String("user.name", "Ta Quang Tung"),
+			),
+		)
 		defer span.End()
 
 		time.Sleep(15 * time.Millisecond)
